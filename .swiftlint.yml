@@ -1,0 +1,47 @@
+# SwiftLint configuration for Swift Testing Migrator
+
+# Paths to include during linting
+included:
+  - Sources
+  - Tests
+
+# Paths to ignore during linting
+excluded:
+  - .build
+  - Package.swift
+  - Tests/**/__Snapshots__
+
+# Rules to disable
+disabled_rules:
+  - trailing_whitespace # Can be noisy during development
+  - line_length # Allow longer lines for migration tool
+  - function_body_length # Migration functions can be long
+
+# Rules to enable
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - private_outlet
+  - redundant_nil_coalescing
+  - unused_optional_binding
+
+# Configure specific rules
+line_length:
+  warning: 120
+  error: 150
+
+function_body_length:
+  warning: 60
+  error: 100
+
+file_length:
+  warning: 500
+  error: 1000
+
+type_body_length:
+  warning: 300
+  error: 400
+
+# Custom reporter (optional)
+reporter: "xcode"
