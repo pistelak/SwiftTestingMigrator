@@ -6,7 +6,7 @@ import SwiftTestingMigratorKit
 struct SwiftTestingMigrator: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "SwiftTestingMigrator",
-        abstract: "A tool to migrate XCTest tests to Swift Testing framework with TCA support",
+        abstract: "A tool to migrate XCTest tests to the Swift Testing framework",
         discussion: """
       This tool performs conservative migration from XCTest to Swift Testing,
       preserving as much of the original code structure as possible while
