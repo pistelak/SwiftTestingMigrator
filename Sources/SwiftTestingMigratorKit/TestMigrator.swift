@@ -2,6 +2,7 @@ import Foundation
 import SwiftSyntax
 import SwiftParser
 import SwiftSyntaxBuilder
+import SwiftBasicFormat
 
 /// Main interface for migrating XCTest files to Swift Testing
 public final class TestMigrator: Sendable {
@@ -26,21 +27,15 @@ public final class TestMigrator: Sendable {
         let migrationRewriter = XCTestToSwiftTestingRewriter()
         let migratedSyntax = migrationRewriter.rewrite(sourceFile)
 
-        // Convert back to source code with custom formatting
-        let migratedSourceFile = migratedSyntax.as(SourceFileSyntax.self)!
-        let migratedSource = formatWithCustomStyle(migratedSourceFile)
+        // Normalize indentation using SwiftBasicFormat
+        let formatter = BasicFormat(indentationWidth: .spaces(2))
+        let formattedSyntax = formatter.rewrite(migratedSyntax)
+
+        // Convert back to source code
+        let migratedSource = formattedSyntax.description
 
         return migratedSource
     }
-
-    /// Format syntax tree - preserve original indentation completely
-    private func formatWithCustomStyle(_ syntax: SourceFileSyntax) -> String {
-        // Don't use syntax.formatted() - it changes indentation
-        // Don't trim characters - that removes indentation!
-        // Just use the raw description to preserve everything exactly as it was
-        return syntax.description
-    }
-
 
     /// Check if source file contains XCTest code that needs migration
     private func containsXCTestCode(_ sourceFile: SourceFileSyntax) -> Bool {
