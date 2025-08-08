@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "XCTestMigrator",
+  name: "SwiftTestingMigrator",
   platforms: [
     .macOS(.v13)
   ],
