@@ -32,14 +32,14 @@ struct SetupTeardownTests {
       
       final class SetupTests {
         private var testData: [String] = []
-      
+
         init() {
-        testData = ["test1", "test2"]
+          testData = ["test1", "test2"]
         }
-      
+
         @Test
         func data() {
-        #expect(testData.count == 2)
+          #expect(testData.count == 2)
         }
       }
       """
@@ -77,14 +77,14 @@ struct SetupTeardownTests {
       
       final class TeardownTests {
         private var subscriptions = Set<AnyCancellable>()
-      
+
         deinit {
-        subscriptions = []
+          subscriptions = []
         }
-      
+
         @Test
         func subscriptions() {
-        #expect(subscriptions != nil)
+          #expect(subscriptions != nil)
         }
       }
       """
@@ -126,19 +126,19 @@ struct SetupTeardownTests {
       
       final class SetupTeardownTests {
         private var connection: DatabaseConnection?
-      
+
         init() {
-        connection = DatabaseConnection.connect()
+          connection = DatabaseConnection.connect()
         }
-      
+
         deinit {
-        connection?.disconnect()
-        connection = nil
+          connection?.disconnect()
+          connection = nil
         }
-      
+
         @Test
         func connection() {
-        #expect(connection != nil)
+          #expect(connection != nil)
         }
       }
       """
@@ -173,14 +173,14 @@ struct SetupTeardownTests {
       
       final class NoSuperSetupTests {
         private var value: Int = 0
-      
+
         init() {
-        value = 42
+          value = 42
         }
-      
+
         @Test
         func value() {
-        #expect(value == 42)
+          #expect(value == 42)
         }
       }
       """
@@ -215,14 +215,14 @@ struct SetupTeardownTests {
       
       final class NoSuperTeardownTests {
         private var resource: Resource?
-      
+
         deinit {
-        resource?.cleanup()
+          resource?.cleanup()
         }
-      
+
         @Test
         func resource() {
-        #expect(resource == nil)
+          #expect(resource == nil)
         }
       }
       """
