@@ -25,8 +25,8 @@ swiftlint --fix
 swiftlint lint Sources
 ```
 
-### During Build
-SwiftLint runs automatically during `swift build` via the build tool plugin.
+### Continuous Integration
+SwiftLint is executed in CI using the `scripts/lint.sh` script.
 
 ## Configuration
 
@@ -39,8 +39,5 @@ SwiftLint is configured via `.swiftlint.yml` with:
 
 ## Current Status
 
-✅ Integrated successfully  
-✅ Auto-fix resolves most formatting issues  
-⚠️ 9 remaining violations (mostly force unwrapping warnings)
-
-The remaining violations are mostly force unwrapping in SwiftSyntax code, which are acceptable for AST manipulation.
+✅ Integrated successfully
+✅ Auto-fix resolves most formatting issues

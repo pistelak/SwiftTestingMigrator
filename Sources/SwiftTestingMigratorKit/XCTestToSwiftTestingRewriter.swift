@@ -103,14 +103,13 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             }
             return binding
         }
-        
+
         let newNode = node
             .with(\.bindings, PatternBindingListSyntax(newBindings))
             .with(\.leadingTrivia, node.leadingTrivia)
             .with(\.trailingTrivia, node.trailingTrivia)
         return DeclSyntax(newNode)
     }
-
 
     override func visit(_ node: FunctionDeclSyntax) -> DeclSyntax {
         let functionName = node.name.text
@@ -222,7 +221,7 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         let isFirstTestMethod = (currentTestMethodIndex == 1)
         let hasSpecialMembers = (hasInitOrDeinit || hasMemberWithBody || hasHelperFunctions)
         let needsEmptyLineBefore = hasSpecialMembers || (testMethodCount > 1 && !isFirstTestMethod)
-        
+
         let properLeadingTrivia: Trivia = needsEmptyLineBefore ? [.newlines(2), .spaces(2)] : [.newlines(1), .spaces(2)]
         return convertedNode
             .with(\.leadingTrivia, properLeadingTrivia)
@@ -258,7 +257,9 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         needsDeinit = true
 
         // First process the body through the rewriter to handle any nested expressions
-        let processedNode = super.visit(node).as(FunctionDeclSyntax.self)!
+        guard let processedNode = super.visit(node).as(FunctionDeclSyntax.self) else {
+            fatalError("Expected FunctionDeclSyntax")
+        }
 
         // Convert tearDown() to deinit with proper spacing
         let deinitDecl = DeinitializerDeclSyntax(
@@ -346,7 +347,7 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         guard let body = body else { return nil }
 
         // Process each statement individually while ensuring proper indentation
-        let processedStatements = body.statements.enumerated().map { index, statement in
+        let processedStatements = body.statements.map { statement in
             // Create a mini-rewriter for just this statement
             let statementRewriter = AssertionRewriter()
             let processedStatement = statementRewriter.visit(statement)
@@ -377,7 +378,7 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             return accessorBlock.with(\.accessors, .accessors(AccessorDeclListSyntax(processedAccessors)))
         case .getter(let codeBlockItemList):
             // Process each statement in the getter body
-            let processedStatements = codeBlockItemList.enumerated().map { index, statement in
+            let processedStatements = codeBlockItemList.map { statement in
                 let statementRewriter = AssertionRewriter()
                 let processedStatement = statementRewriter.visit(statement)
                 return processedStatement
@@ -387,7 +388,7 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             return accessorBlock.with(\.accessors, .getter(CodeBlockItemListSyntax(processedStatements)))
         }
     }
-    
+
     private func analyzeClassForFormatting(_ classNode: ClassDeclSyntax) {
         // Reset flags
         hasSetUpMethod = false
@@ -398,12 +399,12 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         hasHelperFunctions = false
         testMethodCount = 0
         currentTestMethodIndex = 0
-        
+
         // Walk through all members to count and categorize them
         for member in classNode.memberBlock.members {
             if let functionDecl = member.decl.as(FunctionDeclSyntax.self) {
                 let functionName = functionDecl.name.text
-                
+
                 if functionName.hasPrefix("test") && !functionName.hasPrefix("testable") {
                     testMethodCount += 1
                 } else if functionName == "setUp" {
@@ -419,16 +420,14 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
                 }
             } else if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
                 // Check for computed properties
-                for binding in variableDecl.bindings {
-                    if binding.accessorBlock != nil {
-                        hasMemberWithBody = true
-                        break
-                    }
+                for binding in variableDecl.bindings where binding.accessorBlock != nil {
+                    hasMemberWithBody = true
+                    break
                 }
             }
         }
     }
-    
+
 }
 
 /// Helper rewriter that only converts assertions while preserving trivia

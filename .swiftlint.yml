@@ -40,8 +40,8 @@ file_length:
   error: 1000
 
 type_body_length:
-  warning: 300
-  error: 400
+  warning: 400
+  error: 500
 
 # Custom reporter (optional)
 reporter: "xcode"
