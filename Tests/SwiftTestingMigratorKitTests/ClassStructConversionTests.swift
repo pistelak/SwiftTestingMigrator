@@ -149,36 +149,35 @@ struct ClassStructConversionTests {
     
     let migrator = TestMigrator()
     let result = try migrator.migrate(source: input)
-    
-    
+
     assertInlineSnapshot(of: result, as: .lines) {
       """
       import Testing
 
       struct PureTests {
+
         @Test
         func pureFunction() {
           let result = add(2, 3)
           #expect(result == 5)
         }
-      
+
         @Test
         func anotherPureFunction() {
           let result = multiply(4, 5)
           #expect(result == 20)
         }
-        
+
         private func add(_ a: Int, _ b: Int) -> Int {
           return a + b
         }
-        
+
         private func multiply(_ a: Int, _ b: Int) -> Int {
           return a * b
         }
       }
       """
     }
-
   }
   
   @Test

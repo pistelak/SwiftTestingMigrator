@@ -19,7 +19,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
-    .package(url: "https://github.com/apple/swift-syntax", from: "600.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-syntax", from: "600.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0")
   ],
   targets: [
@@ -38,7 +38,8 @@ let package = Package(
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftParser", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax")
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+        .product(name: "SwiftBasicFormat", package: "swift-syntax")
       ],
       swiftSettings: [
         .enableUpcomingFeature("StrictConcurrency")

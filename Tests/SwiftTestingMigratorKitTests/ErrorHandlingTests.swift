@@ -50,21 +50,21 @@ struct ErrorHandlingTests {
           print("Hello")
         }
       }
+
       """
     
     let migrator = TestMigrator()
     let result = try migrator.migrate(source: input)
-    
-    
     assertInlineSnapshot(of: result, as: .lines) {
       """
       import Foundation
-      
+
       struct RegularCode {
         func regularFunction() {
           print("Hello")
         }
       }
+
       """
     }
   }
@@ -113,18 +113,16 @@ struct ErrorHandlingTests {
     
     let migrator = TestMigrator()
     let result = try migrator.migrate(source: input)
-    
-    
     assertInlineSnapshot(of: result, as: .lines) {
       """
       import Foundation
       import SwiftUI
-      
+
       final class SomeClass {
         func someMethod() {
           print("Not a test")
         }
-      } 
+      }
       """
     }
   }

@@ -247,11 +247,46 @@ struct RealWorldExampleTests {
     
     let migrator = TestMigrator()
     let result = try migrator.migrate(source: input)
-    
-    
+
     assertInlineSnapshot(of: result, as: .lines) {
       """
-      
+      import Foundation
+      import Combine
+      import ComposableArchitecture
+      import Testing
+      @testable import UserManagement
+      @testable import AuthService
+
+      final class UserManagementTests {
+        private var cancellables: Set<AnyCancellable> = []
+
+        deinit {
+          cancellables.removeAll()
+        }
+
+        @Test
+        func user_login_flow() async throws {
+          let mockAuthService = MockAuthService()
+          let store = TestStore(initialState: UserManagement.State()) {
+            UserManagement()
+          } withDependencies: {
+            $0.authService = mockAuthService
+          }
+
+          await store.send(.loginButtonTapped) {
+            $0.isLoggingIn = true
+          }
+
+          await store.receive(.loginResponse(.success(.init(id: "123", name: "John")))) {
+            $0.isLoggingIn = false
+            $0.user = User(id: "123", name: "John")
+            $0.isLoggedIn = true
+          }
+
+          #expect(mockAuthService.loginCalled == true)
+          #expect(store.state.user?.name == "John")
+        }
+      }
       """
     }
   }
@@ -288,11 +323,36 @@ struct RealWorldExampleTests {
     
     let migrator = TestMigrator()
     let result = try migrator.migrate(source: input)
-    
-    
+
     assertInlineSnapshot(of: result, as: .lines) {
       """
-      
+      import SwiftUI
+      import SnapshotTesting
+      import Testing
+      @testable import MyApp
+
+      struct PreviewSnapshotTests {
+        @Test
+        func preview_snapshots() {
+          let previews = ContentView_Previews.previews
+
+          for preview in previews {
+            assertSnapshot(matching: preview, as: .image)
+          }
+        }
+
+        @Test
+        func specific_preview_state() {
+          let view = ContentView(
+            store: Store(initialState: ContentView.State(isLoading: true)) {
+              ContentView.Action.self
+            }
+          )
+
+          assertSnapshot(matching: view, as: .image)
+          XCTAssertNoThrow(view.body)
+        }
+      }
       """
     }
   }

@@ -21,10 +21,18 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             let newNode = node.with(\.path, ImportPathComponentListSyntax([
                 ImportPathComponentSyntax(name: .identifier("Testing"))
             ]))
-            return DeclSyntax(newNode)
+            return DeclSyntax(
+                newNode
+                    .with(\.leadingTrivia, node.leadingTrivia)
+                    .with(\.trailingTrivia, node.trailingTrivia)
+            )
         }
 
-        return DeclSyntax(node)
+        return DeclSyntax(
+            node
+                .with(\.leadingTrivia, node.leadingTrivia)
+                .with(\.trailingTrivia, node.trailingTrivia)
+        )
     }
 
     override func visit(_ node: ClassDeclSyntax) -> DeclSyntax {
@@ -56,6 +64,8 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
                     members: convertMemberBlock(node.memberBlock, useClass: true).members,
                     rightBrace: node.memberBlock.rightBrace // Preserve original } spacing
                 ))
+                .with(\.leadingTrivia, node.leadingTrivia)
+                .with(\.trailingTrivia, node.trailingTrivia)
 
             return DeclSyntax(convertedClass)
         } else {
@@ -94,7 +104,10 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             return binding
         }
         
-        let newNode = node.with(\.bindings, PatternBindingListSyntax(newBindings))
+        let newNode = node
+            .with(\.bindings, PatternBindingListSyntax(newBindings))
+            .with(\.leadingTrivia, node.leadingTrivia)
+            .with(\.trailingTrivia, node.trailingTrivia)
         return DeclSyntax(newNode)
     }
 
@@ -211,7 +224,9 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         let needsEmptyLineBefore = hasSpecialMembers || (testMethodCount > 1 && !isFirstTestMethod)
         
         let properLeadingTrivia: Trivia = needsEmptyLineBefore ? [.newlines(2), .spaces(2)] : [.newlines(1), .spaces(2)]
-        return convertedNode.with(\.leadingTrivia, properLeadingTrivia)
+        return convertedNode
+            .with(\.leadingTrivia, properLeadingTrivia)
+            .with(\.trailingTrivia, node.trailingTrivia)
     }
 
     private func convertSetUpMethod(_ node: FunctionDeclSyntax) -> InitializerDeclSyntax {
@@ -267,8 +282,10 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             if statementDescription.contains("super.setUp") {
                 return nil // Remove super.setUp() call
             }
-            // Apply proper indentation to the remaining statement (2 spaces for init body) 
-            return statement.with(\.leadingTrivia, [.newlines(1), .spaces(2)])
+            // Preserve original trivia for remaining statements
+            return statement
+                .with(\.leadingTrivia, statement.leadingTrivia)
+                .with(\.trailingTrivia, statement.trailingTrivia)
         }
 
         return body.with(\.statements, CodeBlockItemListSyntax(filteredStatements))
@@ -284,8 +301,10 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             if statementDescription.contains("super.tearDown") {
                 return nil
             }
-            // Apply proper indentation to the remaining statement (2 spaces for deinit body)
-            return statement.with(\.leadingTrivia, [.newlines(1), .spaces(2)])
+            // Preserve original trivia for remaining statements
+            return statement
+                .with(\.leadingTrivia, statement.leadingTrivia)
+                .with(\.trailingTrivia, statement.trailingTrivia)
         }
 
         return body.with(\.statements, CodeBlockItemListSyntax(filteredStatements))
@@ -327,13 +346,15 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         guard let body = body else { return nil }
 
         // Process each statement individually while ensuring proper indentation
-        let processedStatements = body.statements.map { statement in
-            // Create a mini-rewriter for just this statement 
+        let processedStatements = body.statements.enumerated().map { index, statement in
+            // Create a mini-rewriter for just this statement
             let statementRewriter = AssertionRewriter()
             let processedStatement = statementRewriter.visit(statement)
-            
-            // Ensure the statement has proper indentation
-            return ensureProperIndentation(processedStatement)
+
+            // Preserve original trivia for the statement
+            return processedStatement
+                .with(\.leadingTrivia, statement.leadingTrivia)
+                .with(\.trailingTrivia, statement.trailingTrivia)
         }
 
         return body.with(\.statements, CodeBlockItemListSyntax(processedStatements))
@@ -346,17 +367,22 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             let processedAccessors = accessorDeclList.map { accessor in
                 if let body = accessor.body {
                     let processedBody = processBody(body)
-                    return accessor.with(\.body, processedBody)
+                    return accessor
+                        .with(\.body, processedBody)
+                        .with(\.leadingTrivia, accessor.leadingTrivia)
+                        .with(\.trailingTrivia, accessor.trailingTrivia)
                 }
                 return accessor
             }
             return accessorBlock.with(\.accessors, .accessors(AccessorDeclListSyntax(processedAccessors)))
         case .getter(let codeBlockItemList):
             // Process each statement in the getter body
-            let processedStatements = codeBlockItemList.map { statement in
+            let processedStatements = codeBlockItemList.enumerated().map { index, statement in
                 let statementRewriter = AssertionRewriter()
                 let processedStatement = statementRewriter.visit(statement)
-                return ensureProperIndentation(processedStatement)
+                return processedStatement
+                    .with(\.leadingTrivia, statement.leadingTrivia)
+                    .with(\.trailingTrivia, statement.trailingTrivia)
             }
             return accessorBlock.with(\.accessors, .getter(CodeBlockItemListSyntax(processedStatements)))
         }
@@ -403,11 +429,6 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         }
     }
     
-    private func ensureProperIndentation(_ statement: CodeBlockItemSyntax) -> CodeBlockItemSyntax {
-        // Apply proper indentation based on whether the class/struct has members with bodies
-        let indentSize = hasMemberWithBody ? 2 : 4
-        return statement.with(\.leadingTrivia, [.newlines(1), .spaces(indentSize)])
-    }
 }
 
 /// Helper rewriter that only converts assertions while preserving trivia
