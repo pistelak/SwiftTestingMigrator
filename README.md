@@ -151,5 +151,5 @@ swift test
 
 ## License
 
-[Add your license here]
+SwiftTestingMigrator is released under the [MIT License](LICENSE).
 
