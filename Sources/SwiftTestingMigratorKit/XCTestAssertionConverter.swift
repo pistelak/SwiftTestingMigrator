@@ -39,41 +39,11 @@ enum XCTestAssertionConverter {
     }
 
     static func convertXCTAssertTrue(_ node: FunctionCallExprSyntax) -> FunctionCallExprSyntax {
-        guard let firstArg = node.arguments.first else { return node }
-
-        let finalExpression: ExprSyntax
-        if needsExplicitBooleanComparison(firstArg.expression) {
-            // Simple boolean property - add == true
-            finalExpression = ExprSyntax(InfixOperatorExprSyntax(
-                leftOperand: firstArg.expression,
-                operator: BinaryOperatorExprSyntax(operator: .binaryOperator("==", leadingTrivia: [.spaces(1)], trailingTrivia: [.spaces(1)])),
-                rightOperand: BooleanLiteralExprSyntax(literal: .keyword(.true))
-            ))
-        } else {
-            // Complex expression - use as-is
-            finalExpression = firstArg.expression
-        }
-
-        return createExpectCall(with: finalExpression)
+        convertXCTAssertBoolean(node, expected: true)
     }
 
     static func convertXCTAssertFalse(_ node: FunctionCallExprSyntax) -> FunctionCallExprSyntax {
-        guard let firstArg = node.arguments.first else { return node }
-
-        let finalExpression: ExprSyntax
-        if needsExplicitBooleanComparison(firstArg.expression) {
-            // Simple boolean property - add == true
-            finalExpression = ExprSyntax(InfixOperatorExprSyntax(
-                leftOperand: firstArg.expression,
-                operator: BinaryOperatorExprSyntax(operator: .binaryOperator("==", leadingTrivia: [.spaces(1)], trailingTrivia: [.spaces(1)])),
-                rightOperand: BooleanLiteralExprSyntax(literal: .keyword(.false))
-            ))
-        } else {
-            // Complex expression - use as-is
-            finalExpression = firstArg.expression
-        }
-
-        return createExpectCall(with: finalExpression)
+        convertXCTAssertBoolean(node, expected: false)
     }
 
     static func convertXCTAssertNil(_ node: FunctionCallExprSyntax) -> FunctionCallExprSyntax {
@@ -112,12 +82,32 @@ enum XCTestAssertionConverter {
             rightParen: .rightParenToken()
         )
     }
+
+    /// Converts XCTAssertTrue/False into a #expect comparison
+    private static func convertXCTAssertBoolean(_ node: FunctionCallExprSyntax, expected: Bool) -> FunctionCallExprSyntax {
+        guard let firstArg = node.arguments.first else { return node }
+
+        let finalExpression: ExprSyntax
+        if needsExplicitBooleanComparison(firstArg.expression) {
+            // Simple boolean property - add explicit comparison
+            finalExpression = ExprSyntax(InfixOperatorExprSyntax(
+                leftOperand: firstArg.expression,
+                operator: BinaryOperatorExprSyntax(operator: .binaryOperator("==", leadingTrivia: [.spaces(1)], trailingTrivia: [.spaces(1)])),
+                rightOperand: BooleanLiteralExprSyntax(literal: .keyword(expected ? .true : .false))
+            ))
+        } else {
+            // Complex expression - use as-is
+            finalExpression = firstArg.expression
+        }
+
+        return createExpectCall(with: finalExpression)
+    }
     
-    /// Determines if an expression needs explicit boolean comparison for XCTAssertTrue
+    /// Determines if an expression needs explicit boolean comparison for boolean assertions
     /// Returns true for simple identifiers/member access, false for complex expressions
     private static func needsExplicitBooleanComparison(_ expression: ExprSyntax) -> Bool {
-        // For XCTAssertTrue only:
-        // Simple cases that need explicit comparison (== true):
+        // For XCTAssertTrue and XCTAssertFalse:
+        // Simple cases that need explicit comparison with a boolean literal:
         // - Identifiers: `isValid`
         // - Member access: `user.isActive`, `items.isEmpty`
         // - Function calls: `isEnabled()`, `getValue()`
@@ -128,12 +118,12 @@ enum XCTestAssertionConverter {
         // - Other binary operators: `x + y`, `a - b`
         
         if expression.is(InfixOperatorExprSyntax.self) {
-            // Already has an operator - don't add == true
+            // Already has an operator - don't add explicit comparison
             return false
         }
-        
+
         if expression.is(PrefixOperatorExprSyntax.self) {
-            // Already has a prefix operator (like !) - don't add == true
+            // Already has a prefix operator (like !) - don't add explicit comparison
             return false
         }
         
@@ -144,7 +134,7 @@ enum XCTestAssertionConverter {
         let operators = [">", "<", ">=", "<=", "==", "!=", "&&", "||", "+", "-", "*", "/", "%", "!"]
         for op in operators {
             if exprString.contains(" \(op) ") || exprString.hasPrefix("\(op) ") {
-                return false // Complex expression - don't add == true
+                return false // Complex expression - don't add explicit comparison
             }
         }
         
