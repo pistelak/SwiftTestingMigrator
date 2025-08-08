@@ -180,4 +180,31 @@ struct ErrorHandlingTests {
       """
     }
   }
+
+  @Test
+  func expectationPatternsThrowError() {
+    let input = """
+      import XCTest
+
+      final class ExpectationTests: XCTestCase {
+        func test_waits() {
+          let exp = expectation(description: "async work")
+          waitForExpectations(timeout: 1.0)
+        }
+      }
+      """
+
+    let migrator = TestMigrator()
+
+    do {
+      _ = try migrator.migrate(source: input)
+      Issue.record("Expected migration to fail")
+    } catch {
+      assertInlineSnapshot(of: error.localizedDescription, as: .lines) {
+        """
+        Unsupported pattern that cannot be migrated: XCTest expectations (expectation/waitForExpectations) are not supported
+        """
+      }
+    }
+  }
 }

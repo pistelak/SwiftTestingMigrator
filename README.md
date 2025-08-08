@@ -1,19 +1,23 @@
 # SwiftTestingMigrator
 
-A command-line tool for migrating XCTest-based tests to the Swift Testing framework, with special considerations for TCA (The Composable Architecture) patterns.
+SwiftTestingMigrator is a command-line tool that converts XCTest-based test files to the
+Swift Testing framework. It performs conservative transformations so that the migrated
+code stays familiar and easy to review.
 
 ## Features
 
-- **Conservative Migration**: Preserves code structure and makes minimal changes
-- **XCTest to Swift Testing**: Converts classes, methods, and assertions
-- **Smart Class/Struct Conversion**: Uses structs when possible, classes when needed (stored properties, deinit)
-- **TCA-Aware**: Handles TestStore patterns and async expectations
-- **Setup/Teardown Migration**: Converts to init/deinit patterns
-- **Comprehensive Assertion Mapping**: All major XCTest assertions supported
+- **Conservative migration** – keeps code structure intact and minimizes edits
+- **XCTest ➜ Swift Testing** – updates imports, test declarations, and assertions
+- **Smart class/struct decisions** – chooses `struct` when possible, `class` when
+  stored properties or teardown logic require it
+- **Setup/teardown migration** – converts `setUp`/`tearDown` to `init`/`deinit`
+- **Comprehensive assertion mapping** – covers the most common XCTest assertions
+- **Early failure for unsupported expectations** – files using `expectation` or
+  `waitForExpectations` produce a clear error message rather than an incorrect migration
 
 ## Installation
 
-### Build from Source
+### Build from source
 
 ```bash
 git clone <repository-url>
@@ -21,7 +25,7 @@ cd SwiftTestingMigrator
 swift build -c release
 ```
 
-### Usage
+## Usage
 
 ```bash
 # Basic migration (overwrites original file)
@@ -30,7 +34,7 @@ SwiftTestingMigrator --file MyTests.swift
 # Preview changes without writing
 SwiftTestingMigrator --file MyTests.swift --dry-run
 
-# Migrate to different output file  
+# Migrate to a different output file
 SwiftTestingMigrator --file MyTests.swift --output MigratedTests.swift
 
 # Create backup before migration
@@ -40,11 +44,12 @@ SwiftTestingMigrator --file MyTests.swift --backup
 SwiftTestingMigrator --file MyTests.swift --verbose
 ```
 
-## Migration Examples
+## Examples
 
-### Basic Test Class
+### Basic test class
 
-**Before:**
+**Before**
+
 ```swift
 import XCTest
 
@@ -56,7 +61,8 @@ final class SimpleTests: XCTestCase {
 }
 ```
 
-**After:**
+**After**
+
 ```swift
 import Testing
 
@@ -68,117 +74,82 @@ struct SimpleTests {
 }
 ```
 
-### Complex Class with Properties
+### Class with properties
 
-**Before:**
+**Before**
+
 ```swift
 import XCTest
 import Combine
 
 final class NetworkTests: XCTestCase {
   private var subscriptions = Set<AnyCancellable>()
-  
+
   override func tearDown() {
     subscriptions = []
     super.tearDown()
   }
-  
+
   func test_api_call_success() {
-    let expectation = expectation(description: "API call")
-    // ... async test code
-    waitForExpectations(timeout: 1.0)
+    XCTAssertTrue(true)
   }
 }
 ```
 
-**After:**
+**After**
+
 ```swift
 import Testing
 import Combine
 
 final class NetworkTests {
   private var subscriptions: Set<AnyCancellable>
-  
+
   init() {
     subscriptions = []
   }
-  
+
   deinit {
     subscriptions = []
   }
-  
-  @Test func api_call_success() async {
-    await confirmation { apiCall in
-      // ... async test code with apiCall.confirm()
-    }
+
+  @Test
+  func api_call_success() {
+    #expect(true)
   }
 }
 ```
 
-## Supported Conversions
-
-### Imports
-- `import XCTest` → `import Testing`
-
-### Test Organization  
-- `final class Tests: XCTestCase` → `struct Tests` (when possible)
-- `final class Tests: XCTestCase` → `final class Tests` (when deinit or stored properties needed)
-
-### Test Methods
-- `func testSomething()` → `@Test func something()`
-- `func test_snake_case()` → `@Test func snake_case()`
-
-### Setup/Teardown
-- `override func setUp()` → `init()`
-- `override func tearDown()` → `deinit`
-
-### Assertions
-- `XCTAssertTrue(condition)` → `#expect(condition)`
-- `XCTAssertFalse(condition)` → `#expect(!condition)`
-- `XCTAssertEqual(a, b)` → `#expect(a == b)`
-- `XCTAssertNil(value)` → `#expect(value == nil)`
-- `XCTAssertNotNil(value)` → `#expect(value != nil)`
-- `XCTFail("message")` → `Issue.record("message")`
-
-### Async Testing
-- `expectation(description:)` / `waitForExpectations` → `confirmation` blocks
-- Automatically adds `async` to test methods when needed
-
 ## Limitations
 
-The tool does **not** migrate:
-- UI automation tests (XCUIApplication)
-- Performance tests (XCTMetric)
-- Complex expectation patterns (currently returns as-is)
+- XCTest `expectation`/`waitForExpectations` APIs are not yet supported. The tool
+  will exit with an error when they are detected.
+- UI automation tests (`XCUIApplication`)
+- Performance tests (`XCTMetric`)
 - Objective-C test code
-
-## Error Handling
-
-The tool will:
-- Skip files without XCTest patterns (returns unchanged)
-- Provide clear error messages for invalid syntax
-- Fail safely rather than produce incorrect code
-- Support rollback via backup files
 
 ## Development
 
-### Running Tests
+### Running tests
 
-Note: Due to module conflicts with the system Testing framework, the test suite requires special handling. The tool itself works correctly as demonstrated by the CLI examples.
+```bash
+swift test
+```
 
 ### Architecture
 
-- **SwiftTestingMigratorKit**: Core migration library using SwiftSyntax
-- **SwiftTestingMigrator**: Command-line interface using Swift Argument Parser
-- **XCTestToSwiftTestingRewriter**: Main AST transformation logic
+- **SwiftTestingMigratorKit** – core migration library using SwiftSyntax
+- **SwiftTestingMigrator** – command-line interface built with Swift Argument Parser
+- **XCTestToSwiftTestingRewriter** – main AST transformation logic
 
 ## Contributing
 
-1. Understand the codebase follows conservative migration principles
+1. Follow the project's conservative migration approach
 2. Add tests for new patterns
 3. Maintain compatibility with Swift 6 and modern concurrency
-4. Follow the existing code style conventions
+4. Match the existing code style
 
 ## License
 
 [Add your license here]
+

@@ -17,10 +17,17 @@ public final class TestMigrator: Sendable {
         // Parse the source code into AST
         let sourceFile = Parser.parse(source: source)
 
-        // Check if this file has any XCTest imports or patterns
+        // Only migrate XCTest files
         guard containsXCTestCode(sourceFile) else {
             // File doesn't appear to contain XCTest code, return as-is
             return source
+        }
+
+        // Fail fast on unsupported expectation patterns
+        if containsExpectationUsage(sourceFile) {
+            throw MigrationError.unsupportedPattern(
+                "XCTest expectations (expectation/waitForExpectations) are not supported"
+            )
         }
 
         // Apply migration transformations
@@ -42,6 +49,13 @@ public final class TestMigrator: Sendable {
         let visitor = XCTestDetectionVisitor(viewMode: .sourceAccurate)
         visitor.walk(sourceFile)
         return visitor.hasXCTestCode
+    }
+
+    /// Check if source file contains expectation patterns we can't migrate
+    private func containsExpectationUsage(_ sourceFile: SourceFileSyntax) -> Bool {
+        let visitor = ExpectationUsageVisitor(viewMode: .sourceAccurate)
+        visitor.walk(sourceFile)
+        return visitor.hasExpectationUsage
     }
 }
 
@@ -69,6 +83,19 @@ private final class XCTestDetectionVisitor: SyntaxVisitor {
         let functionName = node.calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines)
         if functionName.hasPrefix("XCTAssert") || functionName.hasPrefix("XCTFail") || functionName.hasPrefix("XCTUnwrap") {
             hasXCTestCode = true
+        }
+        return .visitChildren
+    }
+}
+
+/// Visitor to detect unsupported expectation usage
+private final class ExpectationUsageVisitor: SyntaxVisitor {
+    var hasExpectationUsage = false
+
+    override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
+        let functionName = node.calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if functionName == "expectation" || functionName == "waitForExpectations" {
+            hasExpectationUsage = true
         }
         return .visitChildren
     }
