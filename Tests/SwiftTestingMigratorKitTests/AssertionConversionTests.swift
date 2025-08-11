@@ -3,11 +3,11 @@ import InlineSnapshotTesting
 @testable import SwiftTestingMigratorKit
 
 struct AssertionConversionTests {
-  @Test
-  func assertTrueWithExplicitBoolean() throws {
-    let input = """
+    @Test
+    func assertTrueWithExplicitBoolean() throws {
+        let input = """
       import XCTest
-      
+
       final class BooleanTests: XCTestCase {
         func testTrue() {
           XCTAssertTrue(value > 5)
@@ -15,14 +15,14 @@ struct AssertionConversionTests {
         }
       }
       """
-    
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
-    
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
-      
+
       struct BooleanTests {
         @Test
         func true() {
@@ -31,14 +31,14 @@ struct AssertionConversionTests {
         }
       }
       """
+        }
     }
-  }
-  
-  @Test
-  func assertFalseWithExplicitBoolean() throws {
-    let input = """
+
+    @Test
+    func assertFalseWithExplicitBoolean() throws {
+        let input = """
       import XCTest
-      
+
       final class BooleanTests: XCTestCase {
         func testFalse() {
           XCTAssertFalse(items.isEmpty)
@@ -46,15 +46,14 @@ struct AssertionConversionTests {
         }
       }
       """
-    
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
-    
-    
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
-      
+
       struct BooleanTests {
         @Test
         func false() {
@@ -63,14 +62,14 @@ struct AssertionConversionTests {
         }
       }
       """
+        }
     }
-  }
-  
-  @Test
-  func assertEqualConversion() throws {
-    let input = """
+
+    @Test
+    func assertEqualConversion() throws {
+        let input = """
       import XCTest
-      
+
       final class EqualityTests: XCTestCase {
         func testEquality() {
           XCTAssertEqual(actual, expected)
@@ -78,15 +77,14 @@ struct AssertionConversionTests {
         }
       }
       """
-    
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
-    
-    
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
-      
+
       struct EqualityTests {
         @Test
         func equality() {
@@ -95,29 +93,28 @@ struct AssertionConversionTests {
         }
       }
       """
+        }
     }
-  }
-  
-  @Test
-  func assertNilConversion() throws {
-    let input = """
+
+    @Test
+    func assertNilConversion() throws {
+        let input = """
       import XCTest
-      
+
       final class NilTests: XCTestCase {
         func testNil() {
           XCTAssertNil(optionalValue)
         }
       }
       """
-    
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
-    
-    
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
-      
+
       struct NilTests {
         @Test
         func nil() {
@@ -125,29 +122,28 @@ struct AssertionConversionTests {
         }
       }
       """
+        }
     }
-  }
-  
-  @Test
-  func assertNotNilConversion() throws {
-    let input = """
+
+    @Test
+    func assertNotNilConversion() throws {
+        let input = """
       import XCTest
-      
+
       final class NotNilTests: XCTestCase {
         func testNotNil() {
           XCTAssertNotNil(requiredValue)
         }
       }
       """
-    
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
-    
-    
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
-      
+
       struct NotNilTests {
         @Test
         func notNil() {
@@ -155,29 +151,28 @@ struct AssertionConversionTests {
         }
       }
       """
+        }
     }
-  }
-  
-  @Test
-  func xctFailConversion() throws {
-    let input = """
+
+    @Test
+    func xctFailConversion() throws {
+        let input = """
       import XCTest
-      
+
       final class FailTests: XCTestCase {
         func testFail() {
           XCTFail("Something went wrong")
         }
       }
       """
-    
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
-    
-    
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
-      
+
       struct FailTests {
         @Test
         func fail() {
@@ -185,14 +180,14 @@ struct AssertionConversionTests {
         }
       }
       """
+        }
     }
-  }
-  
-  @Test
-  func complexBooleanExpressions() throws {
-    let input = """
+
+    @Test
+    func complexBooleanExpressions() throws {
+        let input = """
       import XCTest
-      
+
       final class ComplexBooleanTests: XCTestCase {
         func testComplexExpressions() {
           XCTAssertTrue(user.isValid && user.isActive)
@@ -201,15 +196,14 @@ struct AssertionConversionTests {
         }
       }
       """
-    
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
-    
-    
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
-      
+
       struct ComplexBooleanTests {
         @Test
         func complexExpressions() {
@@ -219,6 +213,6 @@ struct AssertionConversionTests {
         }
       }
       """
+        }
     }
-  }
 }

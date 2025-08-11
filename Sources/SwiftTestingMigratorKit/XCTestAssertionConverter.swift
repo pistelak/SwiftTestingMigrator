@@ -24,10 +24,11 @@ enum XCTestAssertionConverter {
     }
 
     static func convertXCTAssertEqual(_ node: FunctionCallExprSyntax) -> FunctionCallExprSyntax {
-        guard node.arguments.count >= 2 else { return node }
-
-        let firstArg = node.arguments.first!
-        let secondArg = node.arguments.dropFirst().first!
+        guard node.arguments.count >= 2,
+              let firstArg = node.arguments.first,
+              let secondArg = node.arguments.dropFirst().first else {
+            return node
+        }
 
         let equalityExpr = InfixOperatorExprSyntax(
             leftOperand: firstArg.expression,
@@ -102,7 +103,7 @@ enum XCTestAssertionConverter {
 
         return createExpectCall(with: finalExpression)
     }
-    
+
     /// Determines if an expression needs explicit boolean comparison for boolean assertions
     /// Returns true for simple identifiers/member access, false for complex expressions
     private static func needsExplicitBooleanComparison(_ expression: ExprSyntax) -> Bool {
@@ -111,12 +112,12 @@ enum XCTestAssertionConverter {
         // - Identifiers: `isValid`
         // - Member access: `user.isActive`, `items.isEmpty`
         // - Function calls: `isEnabled()`, `getValue()`
-        
+
         // Complex cases that don't need explicit comparison (use as-is):
         // - Already have comparison operators: `value > 5`, `count == 0`
         // - Logical operators: `a && b`, `!condition`
         // - Other binary operators: `x + y`, `a - b`
-        
+
         if expression.is(InfixOperatorExprSyntax.self) {
             // Already has an operator - don't add explicit comparison
             return false
@@ -126,23 +127,22 @@ enum XCTestAssertionConverter {
             // Already has a prefix operator (like !) - don't add explicit comparison
             return false
         }
-        
+
         // Check the string representation for operators (fallback for when AST structure isn't precise)
         let exprString = expression.description.trimmingCharacters(in: .whitespaces)
-        
+
         // If it contains operators, it's likely a complex expression
         let operators = [">", "<", ">=", "<=", "==", "!=", "&&", "||", "+", "-", "*", "/", "%", "!"]
-        for op in operators {
-            if exprString.contains(" \(op) ") || exprString.hasPrefix("\(op) ") {
+        for operatorSymbol in operators {
+            if exprString.contains(" \(operatorSymbol) ") || exprString.hasPrefix("\(operatorSymbol) ") {
                 return false // Complex expression - don't add explicit comparison
             }
         }
-        
+
         // Simple expressions need explicit comparison
         return true
     }
-    
-    
+
     /// Helper to create #expect(expression) - cleaner than building each time
     private static func createExpectCall(with expression: ExprSyntax) -> FunctionCallExprSyntax {
         return FunctionCallExprSyntax(
