@@ -22,7 +22,13 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
         name: .shortAndLong,
         help: "Path to the Swift test file to migrate"
     )
-    var file: String
+    var file: String?
+
+    @Option(
+        name: [.long],
+        help: "Path to a folder containing Swift test files to migrate"
+    )
+    var folder: String?
 
     @Option(
         name: .shortAndLong,
@@ -50,6 +56,15 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
 
     func run() async throws {
         let migrator = TestMigrator()
+
+        if let folder {
+            try processFolder(at: folder, using: migrator)
+            return
+        }
+
+        guard let file else {
+            throw ValidationError("Please provide either --file or --folder")
+        }
 
         if verbose {
             print("🔍 Reading file: \(file)")
@@ -106,6 +121,76 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
             print("❌ Unexpected error: \(error.localizedDescription)")
             throw ExitCode.failure
         }
+    }
+
+    private func processFolder(at path: String, using migrator: TestMigrator) throws {
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw ValidationError("Folder not found: \(path)")
+        }
+
+        let folderURL = URL(fileURLWithPath: path)
+        guard let enumerator = FileManager.default.enumerator(at: folderURL, includingPropertiesForKeys: nil) else {
+            throw ValidationError("Unable to read folder: \(path)")
+        }
+
+        var converted: [String] = []
+        var already: [String] = []
+        var unsupported: [(String, String)] = []
+
+        for case let fileURL as URL in enumerator where fileURL.pathExtension == "swift" {
+            if verbose {
+                print("🔍 Reading file: \(fileURL.path)")
+            }
+
+            let original = try String(contentsOf: fileURL)
+            do {
+                let migrated = try migrator.migrate(source: original)
+                if migrated == original {
+                    already.append(fileURL.path)
+                    if verbose {
+                        print("⏭️ Already migrated: \(fileURL.path)")
+                    }
+                } else {
+                    if dryRun {
+                        if verbose {
+                            print("🔍 Dry run - would modify: \(fileURL.path)")
+                        }
+                    } else {
+                        if backup {
+                            let backupURL = fileURL.appendingPathExtension("backup")
+                            try? FileManager.default.copyItem(at: fileURL, to: backupURL)
+                        }
+                        try migrated.write(to: fileURL, atomically: true, encoding: .utf8)
+                    }
+                    converted.append(fileURL.path)
+                    if verbose {
+                        print("✅ Migrated: \(fileURL.path)")
+                    }
+                }
+            } catch let error as MigrationError {
+                unsupported.append((fileURL.path, error.localizedDescription))
+                if verbose {
+                    print("❌ Skipped: \(fileURL.path) (\(error.localizedDescription))")
+                }
+            } catch {
+                unsupported.append((fileURL.path, error.localizedDescription))
+                if verbose {
+                    print("❌ Skipped: \(fileURL.path) (\(error.localizedDescription))")
+                }
+            }
+        }
+
+        print("Migration results:")
+        for file in converted {
+            print("  ✅ Converted: \(file)")
+        }
+        for file in already {
+            print("  ⏭️ Already migrated: \(file)")
+        }
+        for (file, reason) in unsupported {
+            print("  ❌ Unsupported: \(file) (\(reason))")
+        }
+        print("\nSummary: \(converted.count) converted, \(already.count) already migrated, \(unsupported.count) unsupported")
     }
 }
 
