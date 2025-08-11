@@ -1,7 +1,7 @@
-/// SwiftTestingMigratorKit - Library for migrating XCTest to Swift Testing
-///
-/// This library provides functionality to automatically convert XCTest-based
-/// test files to use the Swift Testing framework.
+// SwiftTestingMigratorKit - Library for migrating XCTest to Swift Testing
+//
+// This library provides functionality to automatically convert XCTest-based
+// test files to use the Swift Testing framework.
 
 // Re-export public types
 @_exported import struct Foundation.URL

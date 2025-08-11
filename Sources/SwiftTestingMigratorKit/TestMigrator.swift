@@ -71,10 +71,10 @@ private final class XCTestDetectionVisitor: SyntaxVisitor {
     }
 
     override func visit(_ node: InheritanceClauseSyntax) -> SyntaxVisitorContinueKind {
-        for inheritedType in node.inheritedTypes {
-            if inheritedType.type.description.trimmingCharacters(in: .whitespacesAndNewlines) == "XCTestCase" {
-                hasXCTestCode = true
-            }
+        if node.inheritedTypes.contains(where: {
+            $0.type.description.trimmingCharacters(in: .whitespacesAndNewlines) == "XCTestCase"
+        }) {
+            hasXCTestCode = true
         }
         return .visitChildren
     }

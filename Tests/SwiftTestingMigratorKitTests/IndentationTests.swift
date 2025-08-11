@@ -3,9 +3,9 @@ import InlineSnapshotTesting
 @testable import SwiftTestingMigratorKit
 
 struct IndentationTests {
-  @Test
-  func nestedIndentationPreserved() throws {
-    let input = """
+    @Test
+    func nestedIndentationPreserved() throws {
+        let input = """
       import XCTest
 
       final class NestedTests: XCTestCase {
@@ -17,11 +17,11 @@ struct IndentationTests {
       }
       """
 
-    let migrator = TestMigrator()
-    let result = try migrator.migrate(source: input)
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
 
-    assertInlineSnapshot(of: result, as: .lines) {
-      """
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
       import Testing
 
       struct NestedTests {
@@ -33,6 +33,6 @@ struct IndentationTests {
         }
       }
       """
+        }
     }
-  }
 }
