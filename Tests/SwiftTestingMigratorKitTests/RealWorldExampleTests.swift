@@ -40,8 +40,8 @@ struct RealWorldExampleTests {
 
         assertInlineSnapshot(of: result, as: .lines) {
             """
-      import DataProcessorKit
       @testable import CoreModel
+      import DataProcessorKit
       import Testing
 
       struct DataConverterTests {
@@ -110,8 +110,8 @@ struct RealWorldExampleTests {
         assertInlineSnapshot(of: result, as: .lines) {
             """
       import ComposableArchitecture
-      import Testing
       @testable import MyFeature
+      import Testing
 
       struct FeatureTests {
         @Test
@@ -176,8 +176,8 @@ struct RealWorldExampleTests {
         assertInlineSnapshot(of: result, as: .lines) {
             """
       import ComposableArchitecture
-      import Testing
       @testable import NetworkFeature
+      import Testing
 
       struct NetworkFeatureTests {
         @Test
@@ -248,12 +248,12 @@ struct RealWorldExampleTests {
 
         assertInlineSnapshot(of: result, as: .lines) {
             """
-      import Foundation
+      @testable import AuthService
       import Combine
       import ComposableArchitecture
+      import Foundation
       import Testing
       @testable import UserManagement
-      @testable import AuthService
 
       final class UserManagementTests {
         private var cancellables: Set<AnyCancellable> = []
@@ -324,10 +324,10 @@ struct RealWorldExampleTests {
 
         assertInlineSnapshot(of: result, as: .lines) {
             """
-      import SwiftUI
-      import SnapshotTesting
-      import Testing
       @testable import MyApp
+      import SnapshotTesting
+      import SwiftUI
+      import Testing
 
       struct PreviewSnapshotTests {
         @Test

@@ -14,6 +14,11 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
     private var testMethodCount = 0
     private var currentTestMethodIndex = 0
 
+    override func visit(_ node: SourceFileSyntax) -> SourceFileSyntax {
+        let processed = super.visit(node)
+        return processed.sortedImports()
+    }
+
     override func visit(_ node: ImportDeclSyntax) -> DeclSyntax {
         // Replace "import XCTest" with "import Testing"
         let importPath = node.path.description.trimmingCharacters(in: .whitespacesAndNewlines)

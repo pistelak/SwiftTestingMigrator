@@ -91,7 +91,7 @@ struct BasicMigrationTests {
     }
 
     @Test
-    func multipleImportsPreserved() throws {
+    func importsAreSorted() throws {
         let input = """
       import Foundation
       import XCTest
@@ -109,9 +109,9 @@ struct BasicMigrationTests {
 
         assertInlineSnapshot(of: result, as: .lines) {
             """
+      import Combine
       import Foundation
       import Testing
-      import Combine
 
       struct MultiImportTests {
         @Test
@@ -124,7 +124,7 @@ struct BasicMigrationTests {
     }
 
     @Test
-    func testableImportsPreserved() throws {
+    func testableImportsSortedWithoutBlankLine() throws {
         let input = """
       import XCTest
       @testable import MyModule
@@ -141,8 +141,45 @@ struct BasicMigrationTests {
 
         assertInlineSnapshot(of: result, as: .lines) {
             """
-      import Testing
       @testable import MyModule
+      import Testing
+
+      struct TestableImportTests {
+        @Test
+        func feature() {
+          #expect(true == true)
+        }
+      }
+      """
+        }
+    }
+
+    @Test
+    func testableImportsMaintainSeparationWithBlankLine() throws {
+        let input = """
+      import Foundation
+      import XCTest
+
+      @testable import ZModule
+      @testable import AModule
+
+      final class TestableImportTests: XCTestCase {
+        func testFeature() {
+          XCTAssertTrue(true)
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Foundation
+      import Testing
+
+      @testable import AModule
+      @testable import ZModule
 
       struct TestableImportTests {
         @Test

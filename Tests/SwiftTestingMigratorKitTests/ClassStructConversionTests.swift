@@ -57,8 +57,8 @@ struct ClassStructConversionTests {
 
         assertInlineSnapshot(of: result, as: .lines) {
             """
-      import Testing
       import Combine
+      import Testing
 
       final class NetworkTests {
         private var subscriptions = Set<AnyCancellable>()
