@@ -54,8 +54,14 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
     )
     var verbose = false
 
+    @Flag(
+        name: .long,
+        help: "Remove @MainActor annotations from test methods"
+    )
+    var removeMainActor = false
+
     func run() async throws {
-        let migrator = TestMigrator()
+        let migrator = TestMigrator(removeMainActor: removeMainActor)
 
         if let folder {
             try processFolder(at: folder, using: migrator)
