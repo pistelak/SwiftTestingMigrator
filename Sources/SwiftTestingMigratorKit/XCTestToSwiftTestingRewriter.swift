@@ -5,6 +5,12 @@ import SwiftSyntaxBuilder
 /// Main rewriter that transforms XCTest AST to Swift Testing AST
 final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
 
+    private let removeMainActor: Bool
+
+    init(removeMainActor: Bool = false) {
+        self.removeMainActor = removeMainActor
+    }
+
     private var hasSetUpMethod = false
     private var hasTearDownMethod = false
     private var needsDeinit = false
@@ -191,14 +197,35 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
             newName = originalName
         }
 
-        // Add @Test attribute with controlled trivia - no extra spacing after @Test
-        let testAttribute = AttributeListSyntax([
-            .attribute(AttributeSyntax(
-                atSign: .atSignToken(),
-                attributeName: IdentifierTypeSyntax(name: .identifier("Test")),
-                trailingTrivia: [.newlines(1)] // Always single newline after @Test
-            ))
-        ])
+        // Add @Test attribute while preserving existing attributes like @MainActor
+        var attributeElements: [AttributeListSyntax.Element] = []
+
+        for attribute in node.attributes {
+            guard case .attribute(let attrSyntax) = attribute else {
+                attributeElements.append(attribute)
+                continue
+            }
+
+            let attributeName = attrSyntax.attributeName.description.trimmingCharacters(in: .whitespacesAndNewlines)
+            if removeMainActor && attributeName == "MainActor" {
+                continue
+            }
+
+            let updatedAttr = attrSyntax
+                .with(\.leadingTrivia, [])
+                .with(\.trailingTrivia, [.newlines(1), .spaces(2)])
+            attributeElements.append(.attribute(updatedAttr))
+        }
+
+        let testAttribute = AttributeSyntax(
+            atSign: .atSignToken(),
+            attributeName: IdentifierTypeSyntax(name: .identifier("Test")),
+            trailingTrivia: [.newlines(1)]
+        )
+
+        attributeElements.append(.attribute(testAttribute))
+
+        let newAttributes = AttributeListSyntax(attributeElements)
 
         // Check if function needs async (contains expectation patterns)
         let needsAsync = containsExpectationPatterns(node)
@@ -208,11 +235,11 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         let processedNode = node.with(\.body, processBody(node.body))
 
         // Create the function keyword with proper spacing - preserve original indentation but ensure proper format
-        let functionKeyword = TokenSyntax(.keyword(.func), leadingTrivia: [.spaces(2)], trailingTrivia: [.spaces(1)], presence: .present)
+        let functionKeyword = TokenSyntax(.keyword(.func), leadingTrivia: [], trailingTrivia: [.spaces(1)], presence: .present)
 
         // Apply transformations with controlled trivia
         let convertedNode = processedNode
-            .with(\.attributes, testAttribute)
+            .with(\.attributes, newAttributes)
             .with(\.funcKeyword, functionKeyword)
             .with(\.name, TokenSyntax.identifier(newName))
             .with(\.signature, needsAsync ? makeAsync(processedNode.signature) : processedNode.signature)
@@ -225,8 +252,8 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
 
         let properLeadingTrivia: Trivia = needsEmptyLineBefore ? [.newlines(2), .spaces(2)] : [.newlines(1), .spaces(2)]
         return convertedNode
-            .with(\.leadingTrivia, properLeadingTrivia)
-            .with(\.trailingTrivia, node.trailingTrivia)
+            .with(\FunctionDeclSyntax.leadingTrivia, properLeadingTrivia)
+            .with(\FunctionDeclSyntax.trailingTrivia, node.trailingTrivia)
     }
 
     private func convertSetUpMethod(_ node: FunctionDeclSyntax) -> InitializerDeclSyntax {
@@ -342,13 +369,6 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
     private func convertWaitForExpectationsToConfirmation(_ node: FunctionCallExprSyntax) -> ExprSyntax {
         // This is complex - for now return as-is and let confirmation handle it
         return ExprSyntax(node)
-    }
-
-    private func shouldHaveEmptyLineBeforeTest(_ node: FunctionDeclSyntax) -> Bool {
-        // For now, always add an empty line before test methods
-        // This ensures proper spacing between init/deinit and test methods
-        // In the future, we could analyze the node's position to be more precise
-        return true
     }
 
     private func processBody(_ body: CodeBlockSyntax?) -> CodeBlockSyntax? {

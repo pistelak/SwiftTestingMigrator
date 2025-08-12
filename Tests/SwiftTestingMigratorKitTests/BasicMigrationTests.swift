@@ -153,4 +153,126 @@ struct BasicMigrationTests {
       """
         }
     }
+
+    @Test
+    func mainActorAnnotationPreserved() throws {
+        let input = """
+      import XCTest
+
+      final class MainActorTests: XCTestCase {
+        @MainActor func testOnMainActor() {
+          XCTAssertTrue(true)
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct MainActorTests {
+        @MainActor
+        @Test
+        func onMainActor() {
+          #expect(true == true)
+        }
+      }
+      """
+        }
+    }
+
+    @Test
+    func mainActorRemovalOption() throws {
+        let input = """
+      import XCTest
+
+      final class MainActorTests: XCTestCase {
+        @MainActor func testOnMainActor() {
+          XCTAssertTrue(true)
+        }
+      }
+      """
+
+        let migrator = TestMigrator(removeMainActor: true)
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct MainActorTests {
+        @Test
+        func onMainActor() {
+          #expect(true == true)
+        }
+      }
+      """
+        }
+    }
+
+    @Test
+    func mainActorPreservedWithOtherAttributes() throws {
+        let input = """
+      import XCTest
+
+      final class MainActorAvailabilityTests: XCTestCase {
+        @available(*, deprecated)
+        @MainActor func testOnMainActor() {
+          XCTAssertTrue(true)
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct MainActorAvailabilityTests {
+        @available(*, deprecated)
+        @MainActor
+        @Test
+        func onMainActor() {
+          #expect(true == true)
+        }
+      }
+      """
+        }
+    }
+
+    @Test
+    func mainActorRemovalWithOtherAttributes() throws {
+        let input = """
+      import XCTest
+
+      final class MainActorAvailabilityTests: XCTestCase {
+        @available(*, deprecated)
+        @MainActor func testOnMainActor() {
+          XCTAssertTrue(true)
+        }
+      }
+      """
+
+        let migrator = TestMigrator(removeMainActor: true)
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct MainActorAvailabilityTests {
+        @available(*, deprecated)
+        @Test
+        func onMainActor() {
+          #expect(true == true)
+        }
+      }
+      """
+        }
+    }
 }

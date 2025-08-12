@@ -7,7 +7,11 @@ import SwiftBasicFormat
 /// Main interface for migrating XCTest files to Swift Testing
 public final class TestMigrator: Sendable {
 
-    public init() {}
+    private let removeMainActor: Bool
+
+    public init(removeMainActor: Bool = false) {
+        self.removeMainActor = removeMainActor
+    }
 
     /// Migrate Swift test source code from XCTest to Swift Testing
     /// - Parameter source: The original Swift source code
@@ -31,7 +35,7 @@ public final class TestMigrator: Sendable {
         }
 
         // Apply migration transformations
-        let migrationRewriter = XCTestToSwiftTestingRewriter()
+        let migrationRewriter = XCTestToSwiftTestingRewriter(removeMainActor: removeMainActor)
         let migratedSyntax = migrationRewriter.rewrite(sourceFile)
 
         // Normalize indentation using SwiftBasicFormat
