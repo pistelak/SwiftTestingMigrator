@@ -70,8 +70,8 @@ struct SetupTeardownTests {
 
         assertInlineSnapshot(of: result, as: .lines) {
             """
-      import Testing
       import Combine
+      import Testing
 
       final class TeardownTests {
         private var subscriptions = Set<AnyCancellable>()
