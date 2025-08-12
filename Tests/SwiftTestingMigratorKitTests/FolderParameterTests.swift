@@ -42,7 +42,7 @@ struct FolderParameterTests {
 
     let process = Process()
     process.executableURL = productsDirectory.appendingPathComponent("SwiftTestingMigrator")
-    process.arguments = ["--folder", tempDir.path, "--dry-run"]
+    process.arguments = ["--folder", tempDir.path]
 
     let pipe = Pipe()
     process.standardOutput = pipe
