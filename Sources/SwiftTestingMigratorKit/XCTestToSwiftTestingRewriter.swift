@@ -453,8 +453,9 @@ private final class AssertionRewriter: SyntaxRewriter {
             return ExprSyntax(convertedAssertion)
         }
 
-        // For other function calls, preserve as-is (maintains trivia)
-        return ExprSyntax(node)
+        // For other function calls, continue visiting children to ensure nested
+        // assertions are properly processed
+        return super.visit(node)
     }
 }
 
