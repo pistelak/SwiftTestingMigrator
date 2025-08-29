@@ -162,6 +162,13 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         return super.visit(node)
     }
 
+    override func visit(_ node: ClosureExprSyntax) -> ExprSyntax {
+        if node.statements.isEmpty {
+            return ExprSyntax(node)
+        }
+        return super.visit(node)
+    }
+
     // MARK: - Private Methods
 
     private func removeXCTestCaseInheritance(_ inheritanceClause: InheritanceClauseSyntax) -> InheritanceClauseSyntax? {
