@@ -14,7 +14,7 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
 
       Examples:
         SwiftTestingMigrator --file MyTests.swift
-        SwiftTestingMigrator --file Tests.swift --output MigratedTests.swift --dry-run
+        SwiftTestingMigrator --file Tests.swift --output MigratedTests.swift
       """
     )
 
@@ -35,12 +35,6 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
         help: "Output file path (defaults to overwriting input file)"
     )
     var output: String?
-
-    @Flag(
-        name: .long,
-        help: "Preview changes without writing to file"
-    )
-    var dryRun = false
 
     @Flag(
         name: .long,
@@ -83,14 +77,6 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
 
         do {
             let migratedContent = try migrator.migrate(source: originalContent)
-
-            if dryRun {
-                print("🔍 Dry run - would make the following changes:")
-                print("=" * 50)
-                print(migratedContent)
-                print("=" * 50)
-                return
-            }
 
             let outputPath = output ?? file
             let outputURL = URL(fileURLWithPath: outputPath)
@@ -151,17 +137,11 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
                         print("⏭️ Already migrated: \(fileURL.path)")
                     }
                 } else {
-                    if dryRun {
-                        if verbose {
-                            print("🔍 Dry run - would modify: \(fileURL.path)")
-                        }
-                    } else {
-                        if backup {
-                            let backupURL = fileURL.appendingPathExtension("backup")
-                            try? FileManager.default.copyItem(at: fileURL, to: backupURL)
-                        }
-                        try migrated.write(to: fileURL, atomically: true, encoding: .utf8)
+                    if backup {
+                        let backupURL = fileURL.appendingPathExtension("backup")
+                        try? FileManager.default.copyItem(at: fileURL, to: backupURL)
                     }
+                    try migrated.write(to: fileURL, atomically: true, encoding: .utf8)
                     converted.append(fileURL.path)
                     if verbose {
                         print("✅ Migrated: \(fileURL.path)")

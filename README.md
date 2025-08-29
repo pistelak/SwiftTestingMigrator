@@ -27,12 +27,14 @@ swift build -c release
 
 ## Usage
 
+Provide either `--file` to migrate a single test file or `--folder` to process an entire directory.
+
 ```bash
-# Basic migration (overwrites original file)
+# Migrate a single test file (overwrites original file)
 SwiftTestingMigrator --file MyTests.swift
 
-# Preview changes without writing
-SwiftTestingMigrator --file MyTests.swift --dry-run
+# Migrate all Swift test files in a folder
+SwiftTestingMigrator --folder Tests/
 
 # Migrate to a different output file
 SwiftTestingMigrator --file MyTests.swift --output MigratedTests.swift
