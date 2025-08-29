@@ -290,6 +290,101 @@ struct RealWorldExampleTests {
     }
 
     @Test
+    func publisherFailureHandling() throws {
+        let input = """
+      import Combine
+      import XCTest
+
+      enum TestError: Error {
+        case specific
+        case other
+      }
+
+      final class CombineTests: XCTestCase {
+        func test_publisher_failure() {
+          let subject = PassthroughSubject<Int, TestError>()
+          var cancellables: Set<AnyCancellable> = []
+          var errorReceived = false
+
+          subject
+            .sink(
+              receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                  XCTFail("Unexpected completion")
+                case let .failure(error):
+                  switch error {
+                  case .specific:
+                    errorReceived = true
+                  default:
+                    XCTFail("Unexpected error: \\(error)")
+                  }
+                }
+              },
+              receiveValue: { value in
+                XCTFail("Unexpected value: \\(value)")
+              }
+            )
+            .store(in: &cancellables)
+
+          subject.send(completion: .failure(.specific))
+
+          XCTAssertTrue(errorReceived)
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Combine
+      import Testing
+
+      enum TestError: Error {
+        case specific
+        case other
+      }
+
+      struct CombineTests {
+        @Test
+        func publisher_failure() {
+          let subject = PassthroughSubject<Int, TestError>()
+          var cancellables: Set<AnyCancellable> = []
+          var errorReceived = false
+
+          subject
+            .sink(
+              receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                  Issue.record("Unexpected completion")
+                case let .failure(error):
+                  switch error {
+                  case .specific:
+                    errorReceived = true
+                  default:
+                    Issue.record("Unexpected error: \\(error)")
+                  }
+                }
+              },
+              receiveValue: { value in
+                Issue.record("Unexpected value: \\(value)")
+              }
+            )
+            .store(in: &cancellables)
+
+          subject.send(completion: .failure(.specific))
+
+          #expect(errorReceived == true)
+        }
+      }
+      """
+        }
+    }
+
+    @Test
     func previewSnapshotsTesting() throws {
         let input = """
       import SwiftUI
