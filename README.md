@@ -14,6 +14,7 @@ code stays familiar and easy to review.
 - **Comprehensive assertion mapping** – covers the most common XCTest assertions
 - **Early failure for unsupported expectations** – files using `expectation` or
   `waitForExpectations` produce a clear error message rather than an incorrect migration
+- **Optional MainActor removal** – strip `@MainActor` annotations when not needed
 
 ## Installation
 
@@ -42,6 +43,9 @@ SwiftTestingMigrator --file MyTests.swift --backup
 
 # Verbose output
 SwiftTestingMigrator --file MyTests.swift --verbose
+
+# Remove @MainActor annotations
+SwiftTestingMigrator --file MyTests.swift --remove-main-actor
 ```
 
 ## Examples
