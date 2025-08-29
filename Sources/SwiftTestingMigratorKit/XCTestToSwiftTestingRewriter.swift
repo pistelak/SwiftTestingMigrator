@@ -100,6 +100,12 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
         }
     }
 
+    override func visit(_ node: ExtensionDeclSyntax) -> DeclSyntax {
+        analyzeExtensionForFormatting(node)
+        let processed = super.visit(node)
+        return DeclSyntax(processed)
+    }
+
     override func visit(_ node: VariableDeclSyntax) -> DeclSyntax {
         // Process computed properties to adjust their indentation
         let newBindings = node.bindings.map { binding in
@@ -433,6 +439,42 @@ final class XCTestToSwiftTestingRewriter: SyntaxRewriter {
                 }
             } else if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
                 // Check for computed properties
+                if variableDecl.bindings.contains(where: { $0.accessorBlock != nil }) {
+                    hasMemberWithBody = true
+                }
+            }
+        }
+    }
+
+    private func analyzeExtensionForFormatting(_ extensionNode: ExtensionDeclSyntax) {
+        // Reset flags
+        hasSetUpMethod = false
+        hasTearDownMethod = false
+        needsDeinit = false
+        hasInitOrDeinit = false
+        hasMemberWithBody = false
+        hasHelperFunctions = false
+        testMethodCount = 0
+        currentTestMethodIndex = 0
+
+        for member in extensionNode.memberBlock.members {
+            if let functionDecl = member.decl.as(FunctionDeclSyntax.self) {
+                let functionName = functionDecl.name.text
+
+                if functionName.hasPrefix("test") && !functionName.hasPrefix("testable") {
+                    testMethodCount += 1
+                } else if functionName == "setUp" {
+                    hasSetUpMethod = true
+                    hasInitOrDeinit = true
+                    hasMemberWithBody = true
+                } else if functionName == "tearDown" {
+                    hasTearDownMethod = true
+                    hasInitOrDeinit = true
+                    hasMemberWithBody = true
+                } else if !functionName.hasPrefix("test") || functionName.hasPrefix("testable") {
+                    hasHelperFunctions = true
+                }
+            } else if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
                 if variableDecl.bindings.contains(where: { $0.accessorBlock != nil }) {
                     hasMemberWithBody = true
                 }
