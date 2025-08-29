@@ -73,4 +73,46 @@ struct IndentationTests {
       """
         }
     }
+
+    @Test
+    func preservesEmptyLineBetweenExtensionTests() throws {
+        let input = """
+      import XCTest
+
+      final class ExtensionTests: XCTestCase {}
+
+      extension ExtensionTests {
+        func test_one() {
+          XCTAssertTrue(true)
+        }
+        func test_two() {
+          XCTAssertTrue(true)
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct ExtensionTests {
+      }
+
+      extension ExtensionTests {
+        @Test
+        func one() {
+          #expect(true == true)
+        }
+
+        @Test
+        func two() {
+          #expect(true == true)
+        }
+      }
+      """
+        }
+    }
 }
