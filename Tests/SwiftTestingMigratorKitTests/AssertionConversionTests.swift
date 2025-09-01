@@ -184,6 +184,35 @@ struct AssertionConversionTests {
     }
 
     @Test
+    func optionalChainedSubscriptConversion() throws {
+        let input = """
+      import XCTest
+
+      final class DictionaryTests: XCTestCase {
+        func testOptionalSubscript() {
+          XCTAssertEqual(dictionary?["someKey"], "someValue")
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct DictionaryTests {
+        @Test
+        func optionalSubscript() {
+          #expect(dictionary?["someKey"] == "someValue")
+        }
+      }
+      """
+        }
+    }
+
+    @Test
     func complexBooleanExpressions() throws {
         let input = """
       import XCTest

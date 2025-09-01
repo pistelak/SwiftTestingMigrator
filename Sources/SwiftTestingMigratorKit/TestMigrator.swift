@@ -38,10 +38,30 @@ public final class TestMigrator: Sendable {
         let formatter = BasicFormat(indentationWidth: .spaces(2))
         let formattedSyntax = formatter.rewrite(migratedSyntax)
 
-        // Convert back to source code
-        let migratedSource = formattedSyntax.description
+        // Fix spacing around optional chained subscripts introduced by formatting
+        let spacingFixer = OptionalChainedSubscriptSpacingRewriter()
+        let fixedSyntax = spacingFixer.rewrite(formattedSyntax)
 
-        return migratedSource
+        // Convert back to source code
+        return fixedSyntax.description
+    }
+
+    /// Rewriter that ensures no space appears between a postfix question mark and a subsequent subscript
+    private final class OptionalChainedSubscriptSpacingRewriter: SyntaxRewriter {
+        override func visit(_ node: SubscriptCallExprSyntax) -> ExprSyntax {
+            guard let baseToken = node.calledExpression.lastToken(viewMode: .sourceAccurate),
+                  baseToken.tokenKind == .postfixQuestionMark else {
+                return super.visit(node)
+            }
+
+            // Remove any trailing trivia after the question mark and ensure the bracket starts immediately
+            let cleanCalledExpr = node.calledExpression.with(\.trailingTrivia, [])
+            let cleanLeftBracket = node.leftSquare.with(\.leadingTrivia, [])
+            let newNode = node
+                .with(\.calledExpression, cleanCalledExpr)
+                .with(\.leftSquare, cleanLeftBracket)
+            return ExprSyntax(super.visit(newNode))
+        }
     }
 
     /// Check if source file contains XCTest code that needs migration
