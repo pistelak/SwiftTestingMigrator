@@ -14,6 +14,7 @@ code stays familiar and easy to review.
 - **Comprehensive assertion mapping** – covers the most common XCTest assertions
 - **Early failure for unsupported expectations** – files using `expectation` or
   `waitForExpectations` produce a clear error message rather than an incorrect migration
+  (can be overridden with `--force`)
 
 ## Installation
 
@@ -42,6 +43,9 @@ SwiftTestingMigrator --file MyTests.swift --backup
 
 # Verbose output
 SwiftTestingMigrator --file MyTests.swift --verbose
+
+# Force migration even if unsupported patterns are found
+SwiftTestingMigrator --file MyTests.swift --force
 ```
 
 ## Examples
@@ -122,8 +126,8 @@ final class NetworkTests {
 
 ## Limitations
 
-- XCTest `expectation`/`waitForExpectations` APIs are not yet supported. The tool
-  will exit with an error when they are detected.
+- XCTest `expectation`/`waitForExpectations` APIs are not yet fully supported. The tool
+  will exit with an error when they are detected unless `--force` is used.
 - UI automation tests (`XCUIApplication`)
 - Performance tests (`XCTMetric`)
 - Objective-C test code

@@ -54,11 +54,17 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
     )
     var verbose = false
 
+    @Flag(
+        name: .long,
+        help: "Force migration even if unsupported patterns are detected"
+    )
+    var force = false
+
     func run() async throws {
         let migrator = TestMigrator()
 
         if let folder {
-            try processFolder(at: folder, using: migrator)
+            try processFolder(at: folder, using: migrator, force: force)
             return
         }
 
@@ -82,7 +88,7 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
         }
 
         do {
-            let migratedContent = try migrator.migrate(source: originalContent)
+            let migratedContent = try migrator.migrate(source: originalContent, force: force)
 
             if dryRun {
                 print("🔍 Dry run - would make the following changes:")
@@ -123,7 +129,7 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
         }
     }
 
-    private func processFolder(at path: String, using migrator: TestMigrator) throws {
+    private func processFolder(at path: String, using migrator: TestMigrator, force: Bool) throws {
         guard FileManager.default.fileExists(atPath: path) else {
             throw ValidationError("Folder not found: \(path)")
         }
@@ -144,7 +150,7 @@ struct SwiftTestingMigrator: AsyncParsableCommand {
 
             let original = try String(contentsOf: fileURL)
             do {
-                let migrated = try migrator.migrate(source: original)
+                let migrated = try migrator.migrate(source: original, force: force)
                 if migrated == original {
                     already.append(fileURL.path)
                     if verbose {

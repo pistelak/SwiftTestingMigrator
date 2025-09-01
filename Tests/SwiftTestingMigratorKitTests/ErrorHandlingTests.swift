@@ -205,4 +205,35 @@ struct ErrorHandlingTests {
             }
         }
     }
+
+    @Test
+    func forceAllowsExpectations() throws {
+        let input = """
+      import XCTest
+
+      final class ExpectationTests: XCTestCase {
+        func test_waits() {
+          let exp = expectation(description: "async work")
+          waitForExpectations(timeout: 1.0)
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input, force: true)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct ExpectationTests {
+        @Test
+        func waits() async {
+          let exp = expectation(description: "async work")
+          waitForExpectations(timeout: 1.0)
+        }
+      }
+      """
+        }
+    }
 }
