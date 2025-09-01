@@ -13,7 +13,7 @@ public final class TestMigrator: Sendable {
     /// - Parameter source: The original Swift source code
     /// - Returns: Migrated Swift source code
     /// - Throws: MigrationError if migration fails
-    public func migrate(source: String) throws -> String {
+    public func migrate(source: String, force: Bool = false) throws -> String {
         // Parse the source code into AST
         let sourceFile = Parser.parse(source: source)
 
@@ -24,7 +24,7 @@ public final class TestMigrator: Sendable {
         }
 
         // Fail fast on unsupported expectation patterns
-        if containsExpectationUsage(sourceFile) {
+        if containsExpectationUsage(sourceFile) && !force {
             throw MigrationError.unsupportedPattern(
                 "XCTest expectations (expectation/waitForExpectations) are not supported"
             )
