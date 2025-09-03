@@ -97,6 +97,39 @@ struct AssertionConversionTests {
     }
 
     @Test
+    func assertEmptyStringComparisons() throws {
+        let input = """
+      import XCTest
+
+      final class StringTests: XCTestCase {
+        func testEmpty() {
+          XCTAssertEqual(text, "")
+          XCTAssertTrue(text == "")
+          XCTAssertFalse(text == "")
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct StringTests {
+        @Test
+        func empty() {
+          #expect(text.isEmpty == true)
+          #expect(text.isEmpty == true)
+          #expect(text.isEmpty == false)
+        }
+      }
+      """
+        }
+    }
+
+    @Test
     func assertNilConversion() throws {
         let input = """
       import XCTest

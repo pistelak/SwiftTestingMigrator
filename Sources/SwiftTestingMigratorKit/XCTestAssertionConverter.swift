@@ -30,6 +30,15 @@ enum XCTestAssertionConverter {
             return node
         }
 
+        if let isEmptyExpr = convertEmptyStringEquality(lhs: firstArg.expression, rhs: secondArg.expression) {
+            let explicitComparison = ExprSyntax(InfixOperatorExprSyntax(
+                leftOperand: isEmptyExpr,
+                operator: BinaryOperatorExprSyntax(operator: .binaryOperator("==", leadingTrivia: [.spaces(1)], trailingTrivia: [.spaces(1)])),
+                rightOperand: BooleanLiteralExprSyntax(literal: .keyword(.true))
+            ))
+            return createExpectCall(with: explicitComparison)
+        }
+
         let equalityExpr = InfixOperatorExprSyntax(
             leftOperand: firstArg.expression,
             operator: BinaryOperatorExprSyntax(operator: .binaryOperator("==", leadingTrivia: [.spaces(1)], trailingTrivia: [.spaces(1)])),
@@ -87,18 +96,19 @@ enum XCTestAssertionConverter {
     /// Converts XCTAssertTrue/False into a #expect comparison
     private static func convertXCTAssertBoolean(_ node: FunctionCallExprSyntax, expected: Bool) -> FunctionCallExprSyntax {
         guard let firstArg = node.arguments.first else { return node }
+        let initialExpression = replaceEmptyStringComparison(firstArg.expression) ?? firstArg.expression
 
         let finalExpression: ExprSyntax
-        if needsExplicitBooleanComparison(firstArg.expression) {
+        if needsExplicitBooleanComparison(initialExpression) {
             // Simple boolean property - add explicit comparison
             finalExpression = ExprSyntax(InfixOperatorExprSyntax(
-                leftOperand: firstArg.expression,
+                leftOperand: initialExpression,
                 operator: BinaryOperatorExprSyntax(operator: .binaryOperator("==", leadingTrivia: [.spaces(1)], trailingTrivia: [.spaces(1)])),
                 rightOperand: BooleanLiteralExprSyntax(literal: .keyword(expected ? .true : .false))
             ))
         } else {
             // Complex expression - use as-is
-            finalExpression = firstArg.expression
+            finalExpression = initialExpression
         }
 
         return createExpectCall(with: finalExpression)
@@ -141,6 +151,54 @@ enum XCTestAssertionConverter {
 
         // Simple expressions need explicit comparison
         return true
+    }
+
+    /// Converts equality checks with an empty string into `.isEmpty`
+    private static func convertEmptyStringEquality(lhs: ExprSyntax, rhs: ExprSyntax) -> ExprSyntax? {
+        if isEmptyStringLiteral(lhs) {
+            return makeIsEmptyExpr(rhs)
+        }
+        if isEmptyStringLiteral(rhs) {
+            return makeIsEmptyExpr(lhs)
+        }
+        return nil
+    }
+
+    /// Rewrites expressions like `value == ""` into `value.isEmpty`
+    private static func replaceEmptyStringComparison(_ expression: ExprSyntax) -> ExprSyntax? {
+        if let infix = expression.as(InfixOperatorExprSyntax.self),
+           let binaryOp = infix.operator.as(BinaryOperatorExprSyntax.self),
+           binaryOp.operator.text == "==" {
+            return convertEmptyStringEquality(lhs: infix.leftOperand, rhs: infix.rightOperand)
+        }
+        if let seq = expression.as(SequenceExprSyntax.self),
+           seq.elements.count == 3 {
+            let lhs = seq.elements.first!
+            let op = seq.elements.dropFirst().first!
+            let rhs = seq.elements.last!
+            if let binary = op.as(BinaryOperatorExprSyntax.self), binary.operator.text == "==" {
+                return convertEmptyStringEquality(lhs: lhs, rhs: rhs)
+            }
+        }
+        return nil
+    }
+
+    /// Determines if an expression represents an empty string literal
+    private static func isEmptyStringLiteral(_ expr: ExprSyntax) -> Bool {
+        if let stringLiteral = expr.as(StringLiteralExprSyntax.self) {
+            if stringLiteral.segments.isEmpty { return true }
+            if stringLiteral.segments.count == 1,
+               let segment = stringLiteral.segments.first?.as(StringSegmentSyntax.self) {
+                return segment.content.text.isEmpty
+            }
+        }
+        return false
+    }
+
+    /// Builds `base.isEmpty` expression
+    private static func makeIsEmptyExpr(_ base: ExprSyntax) -> ExprSyntax {
+        let baseString = base.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ExprSyntax("\(raw: baseString).isEmpty")
     }
 
     /// Helper to create #expect(expression) - cleaner than building each time

@@ -42,6 +42,23 @@ struct XCTestAssertionConverterTests {
     }
 
     @Test
+    func convertXCTAssertEqualWithEmptyString() throws {
+        let functionCall = createFunctionCall(
+            name: "XCTAssertEqual",
+            arguments: ["stringValue", "\"\""]
+        )
+
+        let result = XCTestAssertionConverter.convertXCTestAssertion(functionCall, functionName: "XCTAssertEqual")
+        let output = result?.description ?? ""
+
+        assertInlineSnapshot(of: output, as: .lines) {
+            """
+      #expect(stringValue.isEmpty == true)
+      """
+        }
+    }
+
+    @Test
     func convertXCTAssertTrue() throws {
         let functionCall = createFunctionCall(
             name: "XCTAssertTrue",
@@ -76,6 +93,23 @@ struct XCTestAssertionConverterTests {
     }
 
     @Test
+    func convertXCTAssertTrueWithEmptyStringComparison() throws {
+        let functionCall = createFunctionCall(
+            name: "XCTAssertTrue",
+            arguments: ["value == \"\""]
+        )
+
+        let result = XCTestAssertionConverter.convertXCTestAssertion(functionCall, functionName: "XCTAssertTrue")
+        let output = result?.description ?? ""
+
+        assertInlineSnapshot(of: output, as: .lines) {
+            """
+      #expect(value.isEmpty == true)
+      """
+        }
+    }
+
+    @Test
     func convertXCTAssertFalse() throws {
         let functionCall = createFunctionCall(
             name: "XCTAssertFalse",
@@ -105,6 +139,23 @@ struct XCTestAssertionConverterTests {
         assertInlineSnapshot(of: output, as: .lines) {
             """
       #expect(items.isEmpty || hasError)
+      """
+        }
+    }
+
+    @Test
+    func convertXCTAssertFalseWithEmptyStringComparison() throws {
+        let functionCall = createFunctionCall(
+            name: "XCTAssertFalse",
+            arguments: ["value == \"\""]
+        )
+
+        let result = XCTestAssertionConverter.convertXCTestAssertion(functionCall, functionName: "XCTAssertFalse")
+        let output = result?.description ?? ""
+
+        assertInlineSnapshot(of: output, as: .lines) {
+            """
+      #expect(value.isEmpty == false)
       """
         }
     }
@@ -211,14 +262,10 @@ struct XCTestAssertionConverterTests {
 
 /// Simple helper to create function calls for testing - much cleaner than before!
 private func createFunctionCall(name: String, arguments: [String]) -> FunctionCallExprSyntax {
-    return FunctionCallExprSyntax(
-        calledExpression: DeclReferenceExprSyntax(baseName: .identifier(name)),
-        leftParen: .leftParenToken(),
-        arguments: LabeledExprListSyntax(
-            arguments.map { arg in
-                LabeledExprSyntax(expression: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(arg))))
-            }
-        ),
-        rightParen: .rightParenToken()
-    )
+    let source = "\(name)(\(arguments.joined(separator: ", ")))"
+    let parsed = Parser.parse(source: source)
+    guard let call = parsed.statements.first?.item.as(FunctionCallExprSyntax.self) else {
+        preconditionFailure("Failed to parse function call: \(source)")
+    }
+    return call
 }
