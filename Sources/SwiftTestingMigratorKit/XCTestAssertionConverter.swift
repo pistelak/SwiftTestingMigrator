@@ -1,6 +1,5 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
-import SwiftParser
 
 /// Shared utility for converting XCTest assertions to Swift Testing expectations
 enum XCTestAssertionConverter {
@@ -16,6 +15,8 @@ enum XCTestAssertionConverter {
             return convertXCTAssertNil(node)
         case "XCTAssertNotNil":
             return convertXCTAssertNotNil(node)
+        case "XCTAssertThrowsError":
+            return convertXCTAssertThrowsError(node)
         case "XCTFail":
             return convertXCTFail(node)
         default:
@@ -69,6 +70,33 @@ enum XCTestAssertionConverter {
         ))
 
         return createExpectCall(with: notNilComparison)
+    }
+
+    static func convertXCTAssertThrowsError(_ node: FunctionCallExprSyntax) -> FunctionCallExprSyntax {
+        guard let firstArg = node.arguments.first else { return node }
+
+        return FunctionCallExprSyntax(
+            calledExpression: MacroExpansionExprSyntax(
+                pound: .poundToken(),
+                macroName: .identifier("expect")
+            ) {},
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax([
+                LabeledExprSyntax(
+                    label: .identifier("throws"),
+                    colon: .colonToken(trailingTrivia: [.spaces(1)]),
+                    expression: ExprSyntax("(any Error).self")
+                )
+            ]),
+            rightParen: .rightParenToken(),
+            trailingClosure: ClosureExprSyntax(
+                leftBrace: .leftBraceToken(leadingTrivia: [.spaces(1)], trailingTrivia: [.spaces(1)]),
+                statements: CodeBlockItemListSyntax([
+                    CodeBlockItemSyntax(item: .expr(firstArg.expression), trailingTrivia: [.spaces(1)])
+                ]),
+                rightBrace: .rightBraceToken()
+            )
+        )
     }
 
     static func convertXCTFail(_ node: FunctionCallExprSyntax) -> FunctionCallExprSyntax {

@@ -178,6 +178,23 @@ struct XCTestAssertionConverterTests {
     }
 
     @Test
+    func convertXCTAssertThrowsError() throws {
+        let functionCall = createFunctionCall(
+            name: "XCTAssertThrowsError",
+            arguments: ["try sut.performDangerousOperation()"]
+        )
+
+        let result = XCTestAssertionConverter.convertXCTestAssertion(functionCall, functionName: "XCTAssertThrowsError")
+        let output = result?.description ?? ""
+
+        assertInlineSnapshot(of: output, as: .lines) {
+            """
+      #expect(throws: (any Error).self) { try sut.performDangerousOperation() }
+      """
+        }
+    }
+
+    @Test
     func convertUnknownAssertion() throws {
         let functionCall = createFunctionCall(
             name: "XCTAssertSomething",

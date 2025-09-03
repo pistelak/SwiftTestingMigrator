@@ -184,6 +184,39 @@ struct AssertionConversionTests {
     }
 
     @Test
+    func assertThrowsErrorConversion() throws {
+        let input = """
+      import XCTest
+
+      final class ThrowingTests: XCTestCase {
+        func testThrowing() {
+          let sut = SUT()
+          XCTAssertThrowsError(try sut.performDangerousOperation())
+        }
+      }
+      """
+
+        let migrator = TestMigrator()
+        let result = try migrator.migrate(source: input)
+
+        assertInlineSnapshot(of: result, as: .lines) {
+            """
+      import Testing
+
+      struct ThrowingTests {
+        @Test
+        func throwing() {
+          let sut = SUT()
+          #expect(throws: (any Error).self) {
+            try sut.performDangerousOperation()
+          }
+        }
+      }
+      """
+        }
+    }
+
+    @Test
     func optionalChainedSubscriptConversion() throws {
         let input = """
       import XCTest
